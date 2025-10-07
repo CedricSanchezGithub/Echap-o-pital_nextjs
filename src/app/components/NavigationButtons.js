@@ -6,17 +6,13 @@ import { useGameContext } from '../context/GameContext';
 export default function NavigationButtons({ onNavigate, customLabels }) {
   const [isAnimating, setIsAnimating] = useState(false);
   const { currentRoom, availableRooms, inventory } = useGameContext();
-  
-  // Déterminer si une direction est disponible
-  const isDirectionAvailable = (direction) => {
+    const isDirectionAvailable = (direction) => {
     if (!currentRoom || !availableRooms[currentRoom]) return true;
     
     const exit = availableRooms[currentRoom].exits?.[direction];
     
-    // Si pas de sortie dans cette direction
     if (!exit) return false;
     
-    // Si c'est une salle verrouillée, vérifier les objets requis
     if (availableRooms[exit]?.locked) {
       const requiredItems = availableRooms[exit].requiredItems || [];
       return requiredItems.every(item => inventory.includes(item));
@@ -25,17 +21,13 @@ export default function NavigationButtons({ onNavigate, customLabels }) {
     return true;
   };
   
-  // Déterminer les labels en fonction de la salle actuelle
   const getButtonLabel = (direction) => {
-    // Utiliser des labels personnalisés s'ils sont fournis
     if (customLabels && customLabels[direction]) {
       return customLabels[direction];
     }
     
-    // Sinon utiliser les labels par défaut
     if (direction === 'left') return "← Porte de gauche";
     if (direction === 'forward') {
-      // Label spécial pour la sortie
       if (currentRoom === 'corridor3' || 
           (availableRooms[currentRoom] && 
            availableRooms[currentRoom].exits?.forward === 'exit')) {
@@ -47,11 +39,9 @@ export default function NavigationButtons({ onNavigate, customLabels }) {
     
     return direction;
   };
-  
-  const handleClick = (direction) => {
+    const handleClick = (direction) => {
     setIsAnimating(true);
     
-    // Appeler le callback avec la direction choisie après une courte animation
     setTimeout(() => {
       setIsAnimating(false);
       if (onNavigate) onNavigate(direction);
@@ -68,10 +58,9 @@ export default function NavigationButtons({ onNavigate, customLabels }) {
           }`}
           disabled={isAnimating}
         >
-          {getButtonLabel('left')}
-        </button>
+          {getButtonLabel('left')}        </button>
       ) : (
-        <div className="w-40"></div> // Espace vide si pas de sortie à gauche
+        <div className="w-40"></div>
       )}
       
       {isDirectionAvailable('forward') ? (
@@ -86,10 +75,9 @@ export default function NavigationButtons({ onNavigate, customLabels }) {
           }`}
           disabled={isAnimating}
         >
-          {getButtonLabel('forward')}
-        </button>
+          {getButtonLabel('forward')}        </button>
       ) : (
-        <div className="w-40"></div> // Espace vide si pas de sortie en avant
+        <div className="w-40"></div>
       )}
       
       {isDirectionAvailable('right') ? (
@@ -100,10 +88,9 @@ export default function NavigationButtons({ onNavigate, customLabels }) {
           }`}
           disabled={isAnimating}
         >
-          {getButtonLabel('right')}
-        </button>
+          {getButtonLabel('right')}        </button>
       ) : (
-        <div className="w-40"></div> // Espace vide si pas de sortie à droite
+        <div className="w-40"></div>
       )}
     </div>
   );

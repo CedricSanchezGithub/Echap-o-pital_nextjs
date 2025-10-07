@@ -7,9 +7,7 @@ export default function DoctorNPC({ message, onMessageEnd }) {
   const [isTyping, setIsTyping] = useState(true);
   const [displayedMessage, setDisplayedMessage] = useState('');
   const [charIndex, setCharIndex] = useState(0);
-  
-  useEffect(() => {
-    // Réinitialiser l'animation de texte quand le message change
+    useEffect(() => {
     setIsTyping(true);
     setDisplayedMessage('');
     setCharIndex(0);
@@ -17,17 +15,15 @@ export default function DoctorNPC({ message, onMessageEnd }) {
   
   useEffect(() => {
     if (isTyping && message) {
-      // Animation d'écriture du texte lettre par lettre
       if (charIndex < message.length) {
         const timeout = setTimeout(() => {
           setDisplayedMessage(prev => prev + message[charIndex]);
           setCharIndex(prevIndex => prevIndex + 1);
-        }, 30); // vitesse d'affichage du texte
+        }, 30);
         
         return () => clearTimeout(timeout);
       } else {
         setIsTyping(false);
-        // Appeler le callback quand l'animation est terminée
         if (onMessageEnd) setTimeout(onMessageEnd, 1000);
       }
     }
@@ -42,9 +38,8 @@ export default function DoctorNPC({ message, onMessageEnd }) {
           fill
           style={{ objectFit: 'contain' }}
           className="drop-shadow-lg"
-        />
-      </div>
-        {message && (
+        />      </div>
+      {message && (
         <div className="bg-black/70 text-white p-5 rounded-lg ml-4 max-w-lg border border-gray-600 min-h-[12rem] md:min-h-[14rem] flex flex-col justify-center">
           <p className="text-xl md:text-2xl font-medium leading-relaxed">{displayedMessage}</p>
         </div>

@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { useGameContext } from '../context/GameContext';
 
 export default function Timer({ initialTime = 3600 }) {
-  // Utiliser le contexte du jeu
   const { timeLeft, setTimeLeft, setGameOver } = useGameContext();
   
   useEffect(() => {
@@ -12,7 +11,6 @@ export default function Timer({ initialTime = 3600 }) {
       setTimeLeft((prevTime) => {
         if (prevTime <= 0) {
           clearInterval(timerInterval);
-          // Fin du jeu quand le temps est écoulé
           setGameOver(true);
           return 0;
         }
@@ -23,15 +21,13 @@ export default function Timer({ initialTime = 3600 }) {
     return () => clearInterval(timerInterval);
   }, [setTimeLeft, setGameOver]);
   
-  // Formatage du temps en minutes:secondes
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
   
-  // Changer la couleur en fonction du temps restant
   let timerColor = "text-white";
-  if (timeLeft < 300) { // Moins de 5 minutes
+  if (timeLeft < 300) {
     timerColor = "text-red-500";
-  } else if (timeLeft < 600) { // Moins de 10 minutes
+  } else if (timeLeft < 600) {
     timerColor = "text-yellow-500";
   }
   
