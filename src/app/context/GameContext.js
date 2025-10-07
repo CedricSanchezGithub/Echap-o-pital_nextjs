@@ -22,6 +22,9 @@ export function GameProvider({ children }) {  // État global du jeu
   const [lastEvent, setLastEvent] = useState(null);
   const [sanity, setSanity] = useState(100); // Santé mentale séparée de la santé physique
   const [difficultyProgression, setDifficultyProgression] = useState(1); // Niveau de difficulté actuel
+  const [showDoctorChoice, setShowDoctorChoice] = useState(false); // Affichage des boutons faire confiance/dénoncer
+  const [popupMessage, setPopupMessage] = useState(null); // Message à afficher dans la pop-up
+  const [showPopup, setShowPopup] = useState(false); // État pour afficher ou masquer la pop-up
   
   // États spécifiques aux salles
   const [currentService, setCurrentService] = useState(null);
@@ -42,8 +45,7 @@ export function GameProvider({ children }) {  // État global du jeu
   const addToInventory = (item) => {
     setInventory((prev) => [...prev, item]);
   };
-  
-  // Fonction pour retirer de la vie
+    // Fonction pour retirer de la vie
   const decreaseHealth = (amount) => {
     setHealth((prev) => {
       const newHealth = Math.max(0, prev - amount);
@@ -52,7 +54,63 @@ export function GameProvider({ children }) {  // État global du jeu
       }
       return newHealth;
     });
-  };  // Fonction pour générer une salle aléatoire
+  };
+  
+  // Fonction pour augmenter la vie
+  const increaseHealth = (amount) => {
+    setHealth((prev) => {
+      return Math.min(100, prev + amount);
+    });
+  };
+  
+  // Gérer le choix du joueur face au médecin (faire confiance ou dénoncer)
+  const handleDoctorChoice = (choice) => {
+    // On récupère les infos sur la salle actuelle
+    const currentRoomData = generatedRooms[currentRoom];
+    
+    // Si pas de données ou pas d'info sur le médecin, ne rien faire
+    if (!currentRoomData || currentRoomData.isBad === undefined) return;
+    
+    // Déterminer si le choix est correct
+    let isCorrectChoice = false;
+    
+    // Si le médecin est un Illuminati (mauvais) et que le joueur le dénonce
+    if (currentRoomData.isBad && choice === 'denounce') {
+      isCorrectChoice = true;
+      setPopupMessage("Félicitation, vous avez capturé un Illuminati !");
+      setCluesFound(prev => prev + 1); // Ajouter un indice
+    } 
+    // Si le médecin est honnête (bon) et que le joueur lui fait confiance
+    else if (!currentRoomData.isBad && choice === 'trust') {
+      isCorrectChoice = true;
+      setPopupMessage("Le médecin vous a soigné ! Vous récupérez des points de vie.");
+      increaseHealth(15); // Récupérer de la vie
+      // Changer de symptôme car guéri
+      setPlayerSymptom(getRandomSymptom());
+    }
+    // Mauvais choix
+    else {
+      isCorrectChoice = false;
+      setPopupMessage("Mauvaise réponse ! Le médecin vous a blessé.");
+      decreaseHealth(10); // Perdre de la vie
+    }
+    
+    setShowPopup(true);
+    setShowDoctorChoice(false);
+    
+    // Après un délai, fermer la popup et retourner au couloir
+    setTimeout(() => {
+      setShowPopup(false);
+      // Retourner au couloir précédent
+      let corridorToReturn = 'corridor1';
+      if (visitedRooms.includes('corridor3')) {
+        corridorToReturn = 'corridor3';
+      } else if (visitedRooms.includes('corridor2')) {
+        corridorToReturn = 'corridor2';
+      }
+      setCurrentRoom(corridorToReturn);
+    }, 3000);
+  };// Fonction pour générer une salle aléatoire
   const generateRandomRoom = () => {
     // Déterminer le niveau de difficulté en fonction de la progression
     let difficultyLevel = 1;
@@ -71,6 +129,9 @@ export function GameProvider({ children }) {  // État global du jeu
     
     // Créer la salle si elle n'existe pas déjà
     if (!generatedRooms[roomId]) {
+      // Déterminer si le médecin est un Illuminati (50% de chance)
+      const isBad = Math.random() < 0.5;
+      
       // Générer un message du médecin spécifique au service
       const message = getServiceSpecificPhrase(service.id);
       
@@ -86,7 +147,8 @@ export function GameProvider({ children }) {  // État global du jeu
           doctorMessage: message,
           difficulty: service.difficulty || 1,
           ambiance: service.ambiance || "La salle est silencieuse et inquiétante.",
-          item: potentialItem
+          item: potentialItem,
+          isBad: isBad // Le médecin est-il un Illuminati?
         }
       }));
     }
@@ -266,7 +328,6 @@ export function GameProvider({ children }) {  // État global du jeu
       return newSanity;
     });
   };
-
   // Valeur du contexte à fournir aux composants enfants
   const value = {
     health,
@@ -284,6 +345,7 @@ export function GameProvider({ children }) {  // État global du jeu
     playerNumber,
     playerSymptom,
     decreaseHealth,
+    increaseHealth,
     gameOver,
     setGameOver,
     visitedRooms,
@@ -301,6 +363,12 @@ export function GameProvider({ children }) {  // État global du jeu
     lastEvent,
     difficultyProgression,
     itemAvailable,
+    // États et fonctions pour la mécanique de docteur
+    showDoctorChoice,
+    setShowDoctorChoice,
+    handleDoctorChoice,
+    popupMessage,
+    showPopup,
     // Accès aux données statiques pour faciliter le référencement
     availableRooms: rooms
   };

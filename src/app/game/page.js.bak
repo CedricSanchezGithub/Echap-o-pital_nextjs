@@ -19,7 +19,6 @@ import { rooms, randomEvents } from '../utils/roomUtils';
 
 export default function GamePage() {
   const router = useRouter();
-  
   // États du jeu depuis le contexte
   const { 
     health, 
@@ -52,6 +51,7 @@ export default function GamePage() {
   const [showNavigation, setShowNavigation] = useState(false);
   const [doctorDialogueStep, setDoctorDialogueStep] = useState(0);
   const [showDoctorDialogue, setShowDoctorDialogue] = useState(false);
+  // États pour la gestion des items et événements
   const [showInventory, setShowInventory] = useState(false);
   const [showItemPrompt, setShowItemPrompt] = useState(false);
   const [eventAnimationActive, setEventAnimationActive] = useState(false);
@@ -63,6 +63,7 @@ export default function GamePage() {
       setGameStarted(true);
       // On commence dans un couloir sans médecin
       setShowDoctorDialogue(false);
+      // Navigation buttons will appear after dialogue completes
     }, 1000);
     
     return () => clearTimeout(timer);
@@ -78,9 +79,7 @@ export default function GamePage() {
       
       return () => clearTimeout(timer);
     }
-  }, [lastEvent]);
-  
-  // Dialogue initial du joueur
+  }, [lastEvent]);// Dialogue initial du joueur
   const initialDialogues = [
     "Bonjour ? Il y a quelqu'un ? Je ne me sens pas très bien...",
     playerSymptom ? playerSymptom.description : "Je me sens vraiment mal...",
@@ -105,8 +104,7 @@ export default function GamePage() {
   const dialogues = currentService ? 
     serviceDialogues[currentService.id] || initialDialogues : 
     initialDialogues;
-  
-  // Reset dialogue states when room changes
+    // Reset dialogue states when room changes
   useEffect(() => {
     setDialogueStep(0);
     setDoctorDialogueStep(0);
@@ -120,27 +118,23 @@ export default function GamePage() {
       // In corridors, we'll show navigation buttons after completing the dialogue
       // (this is handled separately in handleNextDialogue)
     }
-  }, [currentRoom, showDoctor]);
-  
-  // Show navigation buttons or doctor choice when the player dialogue completes
-  useEffect(() => {
-    // If we're not in a room with a doctor and player dialogue is finished
+  }, [currentRoom, showDoctor]);  // Show navigation buttons or doctor choice when the player dialogue completes  useEffect(() => {
+    // Si le dialogue du joueur est terminé
     if (!showDoctorDialogue && dialogueStep >= dialogues.length - 1) {
-      // Si nous sommes dans une salle avec un médecin (non-corridor)
+      // Si nous sommes dans une salle médicale (non-corridor)
       if (currentRoom && !currentRoom.startsWith('corridor')) {
-        // Afficher les boutons de choix du médecin au lieu de la navigation
+        // Afficher uniquement les boutons de choix du médecin
         setShowNavigation(false);
         setShowDoctorChoice(true);
       } else {
-        // Dans un couloir, afficher les boutons de navigation normaux
+        // Dans un couloir, afficher uniquement les boutons de navigation normaux
         setShowNavigation(true);
         setShowDoctorChoice(false);
       }
     }
   }, [dialogueStep, dialogues.length, showDoctorDialogue, currentRoom, setShowDoctorChoice]);
   
-  // Gérer la progression du dialogue du joueur
-  const handleNextDialogue = () => {
+    // Gérer la progression du dialogue du joueur  const handleNextDialogue = () => {
     if (dialogueStep < dialogues.length - 1) {
       setDialogueStep(dialogueStep + 1);
     } else {
@@ -155,10 +149,7 @@ export default function GamePage() {
         setShowDoctorChoice(false);
       }
     }
-  };
-  
-  // Gérer la progression du dialogue du médecin
-  const handleDoctorDialogue = () => {
+  };  // Gérer la progression du dialogue du médecin  const handleDoctorDialogue = () => {
     if (doctorDialogueStep < 1) {  // Changed from 0 to 1 to allow multiple dialogue steps
       setDoctorDialogueStep(doctorDialogueStep + 1);
     } else {
@@ -175,9 +166,7 @@ export default function GamePage() {
         setShowDoctorChoice(false);
       }
     }
-  };
-  
-  // Gérer le ramassage d'un item
+  };// Gérer le ramassage d'un item
   const handlePickupItem = () => {
     if (itemAvailable) {
       if (pickupItem(itemAvailable)) {
@@ -233,9 +222,7 @@ export default function GamePage() {
   
   return (
     <div className="font-sans min-h-screen w-full relative flex flex-col">
-      {/* Fond de la salle courante */}
-      <div className="absolute inset-0 z-0">
-        <Image 
+      {/* Fond de la salle courante */}      <div className="absolute inset-0 z-0">        <Image 
           src={(() => {
             // Si c'est un couloir, utiliser corridor1.jpg
             if (currentRoom.startsWith('corridor') || 
@@ -265,8 +252,7 @@ export default function GamePage() {
       </div>
       
       {/* UI du jeu */}
-      <div className="relative z-10 flex flex-col h-screen">
-        {/* Barre supérieure avec timer */}
+      <div className="relative z-10 flex flex-col h-screen">      {/* Barre supérieure avec timer */}
         <div className="flex justify-end items-start p-4">
           <div className="flex flex-col items-end">
             <Timer initialTime={3600} />
@@ -319,25 +305,17 @@ export default function GamePage() {
         {currentService && (
           <ServiceHeader serviceName={currentService.name} />
         )}
-        
-        {/* Zone principale de jeu (centre) */}
+          {/* Zone principale de jeu (centre) */}
         <div className="flex-grow flex items-center justify-center">
           {/* Afficher le médecin quand on est dans une salle de service */}
-          {showDoctor && showDoctorDialogue && (
-            <DoctorNPC 
+          {showDoctor && showDoctorDialogue && (            <DoctorNPC 
               message={doctorMessage} 
               onMessageEnd={() => {
                 // When doctor dialogue ends, transition to player dialogue or navigation
                 setShowDoctorDialogue(false);
                 if (dialogues.length === 0) {
                   // If no player dialogue for this room, show navigation
-                  // Afficher les choix du docteur uniquement dans les salles médicales
-                  if (currentRoom && !currentRoom.startsWith('corridor')) {
-                    setShowDoctorChoice(true);
-                    setShowNavigation(false);
-                  } else {
-                    setShowNavigation(true);
-                  }
+                  setShowNavigation(true);
                 } else {
                   // Otherwise, start player dialogue
                   setDialogueStep(0);
@@ -346,21 +324,16 @@ export default function GamePage() {
             />
           )}
         </div>
-        
-        {/* Barre inférieure avec le joueur et les dialogues/choix */}
-        <div className="p-6 pt-8 pb-10 bg-black/60 backdrop-blur-md">
-          {gameStarted && (
-            <div className="flex flex-col gap-8 max-w-6xl mx-auto">
-              {/* N'afficher le personnage du joueur que si on n'est pas en dialogue avec un docteur */}
+          {/* Barre inférieure avec le joueur et les dialogues/choix */}
+        <div className="p-6 pt-8 pb-10 bg-black/60 backdrop-blur-md">          {gameStarted && (
+            <div className="flex flex-col gap-8 max-w-6xl mx-auto">              {/* N'afficher le personnage du joueur que si on n'est pas en dialogue avec un docteur */}
               {!showDoctorDialogue && dialogueStep < dialogues.length && (
                 <PlayerCharacter 
                   playerNumber={playerNumber} 
                   message={dialogues[dialogueStep]} 
                   onMessageEnd={handleNextDialogue}
                 />
-              )}
-              
-              {/* Boutons de navigation (apparaissent après les dialogues, UNIQUEMENT dans les couloirs) */}
+              )}              {/* Boutons de navigation (apparaissent après les dialogues, seulement dans les couloirs) */}
               {showNavigation && currentRoom && currentRoom.startsWith('corridor') && (
                 <div className="mt-8">
                   <NavigationButtons onNavigate={handleNavigation} />
@@ -385,8 +358,8 @@ export default function GamePage() {
                 </div>
               )}
               
-              {/* Prompt de ramassage d'item (uniquement dans les couloirs) */}
-              {itemAvailable && showNavigation && currentRoom && currentRoom.startsWith('corridor') && (
+              {/* Prompt de ramassage d'item */}
+              {itemAvailable && showNavigation && (
                 <div className="mt-4 flex justify-center">
                   <button
                     onClick={handlePickupItem}
@@ -398,7 +371,7 @@ export default function GamePage() {
               )}
               
               {/* Ambiance de la salle */}
-              {currentRoomAmbiance && (
+              {currentRoomAmbiance && showNavigation && (
                 <div className="mt-4 text-gray-300 italic text-sm max-w-2xl mx-auto text-center">
                   <p>{currentRoomAmbiance}</p>
                 </div>
@@ -407,8 +380,7 @@ export default function GamePage() {
           )}
         </div>
       </div>
-      
-      {/* Boutons d'interface */}
+        {/* Boutons d'interface */}
       <div className="absolute top-4 left-4 flex flex-col gap-2 z-20">
         <button 
           onClick={() => router.push('/')}
