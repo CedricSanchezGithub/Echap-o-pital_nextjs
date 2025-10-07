@@ -44,11 +44,9 @@ export default function DoctorNPC({ message, onMessageEnd }) {
           className="drop-shadow-lg"
         />
       </div>
-      
-      {message && (
+        {message && (
         <div className="bg-black/70 text-white p-5 rounded-lg ml-4 max-w-lg border border-gray-600 min-h-[12rem] md:min-h-[14rem] flex flex-col justify-center">
           <p className="text-xl md:text-2xl font-medium leading-relaxed">{displayedMessage}</p>
-          {isTyping && <span className="animate-pulse text-2xl">▌</span>}
         </div>
       )}
     </div>

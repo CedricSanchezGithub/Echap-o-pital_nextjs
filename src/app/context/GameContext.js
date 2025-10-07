@@ -116,9 +116,23 @@ export function GameProvider({ children }) {  // État global du jeu
     let difficultyLevel = 1;
     if (visitedRooms.includes('corridor2')) difficultyLevel = 2;
     if (visitedRooms.includes('corridor3')) difficultyLevel = 3;
+      // Choisir un service aléatoire adapté à la difficulté
+    let service = getRandomService(difficultyLevel);
+    console.log("🔍 Service généré:", service);
     
-    // Choisir un service aléatoire adapté à la difficulté
-    const service = getRandomService(difficultyLevel);
+    // Validation du service
+    if (!service || !service.name) {
+      console.error("❌ Service invalide généré:", service);
+      // Créer un service de fallback
+      service = {
+        id: 'general',
+        name: 'Médecine Générale',
+        description: 'Service de médecine générale',
+        ambiance: 'Une salle médicale standard.',
+        difficulty: 1
+      };
+      console.log("🛠️ Utilisation du service de fallback:", service);
+    }
     
     // Choisir un fond aléatoire entre room1 et room9 (correspond aux images disponibles dans public/images/backgrounds/)
     const roomNumber = Math.floor(Math.random() * 9) + 1;
@@ -138,22 +152,40 @@ export function GameProvider({ children }) {  // État global du jeu
       // Vérifier si un item peut être trouvé dans cette salle
       const potentialItem = Math.random() < 0.4 ? getRandomItem(service.id) : null; // 40% de chance de trouver un item
       
+      const newRoom = {
+        id: roomId,
+        service: {
+          id: service.id,
+          name: service.name || 'Service Médical',
+          description: service.description || 'Service hospitalier spécialisé',
+          ambiance: service.ambiance || "La salle est silencieuse et inquiétante.",
+          difficulty: service.difficulty || 1
+        },
+        background: background,
+        doctorMessage: message,
+        difficulty: service.difficulty || 1,
+        ambiance: service.ambiance || "La salle est silencieuse et inquiétante.",
+        item: potentialItem,
+        isBad: isBad // Le médecin est-il un Illuminati?
+      };
+      
+      console.log("🏥 Nouvelle salle créée:", {
+        roomId: newRoom.id,
+        serviceName: newRoom.service.name,
+        serviceDescription: newRoom.service.description
+      });
+      
       setGeneratedRooms(prev => ({
         ...prev,
-        [roomId]: {
-          id: roomId,
-          service: service,
-          background: background,
-          doctorMessage: message,
-          difficulty: service.difficulty || 1,
-          ambiance: service.ambiance || "La salle est silencieuse et inquiétante.",
-          item: potentialItem,
-          isBad: isBad // Le médecin est-il un Illuminati?
-        }
+        [roomId]: newRoom
       }));
+      
+      return newRoom;
     }
     
-    return roomId;
+    // Si la salle existe déjà, la retourner
+    console.log("♻️ Salle existante réutilisée:", roomId);
+    return generatedRooms[roomId];
   };
   // Fonction pour gérer des événements aléatoires dans les couloirs
   const handleRandomEvent = (corridor) => {
@@ -190,18 +222,24 @@ export function GameProvider({ children }) {  // État global du jeu
     
     return null;
   };
-
   // Fonction pour changer de salle
   const changeRoom = (roomId) => {
+    console.log("🚪 changeRoom appelé avec:", roomId);
+    
+    let actualRoomId = roomId;
+    let generatedRoom = null;
+    
     // Si la salle demandée est "randomRoom", on génère une salle aléatoire
     if (roomId === 'randomRoom') {
-      roomId = generateRandomRoom();
+      generatedRoom = generateRandomRoom();
+      actualRoomId = generatedRoom.id;
+      console.log("🎲 Salle aléatoire générée:", actualRoomId);
     }
     
     // Vérifier si la salle est verrouillée
-    if (rooms[roomId] && rooms[roomId].locked) {
+    if (rooms[actualRoomId] && rooms[actualRoomId].locked) {
       // Vérifier si le joueur a les objets requis
-      const requiredItems = rooms[roomId].requiredItems || [];
+      const requiredItems = rooms[actualRoomId].requiredItems || [];
       const hasAllItems = requiredItems.every(item => inventory.includes(item));
       
       if (!hasAllItems) {
@@ -213,15 +251,22 @@ export function GameProvider({ children }) {  // État global du jeu
       }
     }
     
-    setCurrentRoom(roomId);
-      // Si c'est une salle générée aléatoirement
-    if (generatedRooms[roomId]) {
-      const room = generatedRooms[roomId];
+    setCurrentRoom(actualRoomId);
+    
+    // Si c'est une salle générée aléatoirement
+    const room = generatedRoom || generatedRooms[actualRoomId];
+    if (room) {
+      console.log("🏥 Configuration de la salle générée:", {
+        roomId: room.id,
+        serviceName: room.service?.name,
+        serviceDescription: room.service?.description
+      });
+      
       setCurrentService(room.service);
       setCurrentBackground(room.background); // background sera "room1" à "room9" (sans l'extension)
       setShowDoctor(true);
       setDoctorMessage(room.doctorMessage);
-      setCurrentRoomAmbiance(room.ambiance || room.service.ambiance);
+      setCurrentRoomAmbiance(room.ambiance || room.service?.ambiance || "");
       
       // Si la salle contient un item et qu'on ne l'a pas encore ramassé
       if (room.item && !inventory.includes(room.item)) {
@@ -237,9 +282,10 @@ export function GameProvider({ children }) {  // État global du jeu
       if (room.difficulty > difficultyProgression) {
         setDifficultyProgression(room.difficulty);
       }
-    } else if (roomId.startsWith('corridor')) {
+    } else if (actualRoomId.startsWith('corridor')) {
       // C'est un couloir
-      const corridorData = rooms[roomId];
+      console.log("🚶 Entrée dans le couloir:", actualRoomId);
+      const corridorData = rooms[actualRoomId];
       setCurrentService(null);
       setCurrentBackground('corridor1'); // Always use corridor1.jpg for all corridors
       setCurrentRoomAmbiance(corridorData?.ambiance || "");
@@ -248,7 +294,7 @@ export function GameProvider({ children }) {  // État global du jeu
       setItemAvailable(null);
       
       // Vérifier si un événement aléatoire se produit
-      const event = handleRandomEvent(roomId);
+      const event = handleRandomEvent(actualRoomId);
       if (event) {
         // Afficher un message pour l'événement
         setDoctorMessage(event.description);
@@ -257,11 +303,12 @@ export function GameProvider({ children }) {  // État global du jeu
       } else {
         setLastEvent(null);
       }
-    } else if (roomId === 'exit' || roomId === 'secretRoom') {
+    } else if (actualRoomId === 'exit' || actualRoomId === 'secretRoom') {
       // Salles spéciales
-      const specialRoom = rooms[roomId];
+      console.log("🔐 Entrée dans la salle spéciale:", actualRoomId);
+      const specialRoom = rooms[actualRoomId];
       setCurrentService({
-        id: roomId,
+        id: actualRoomId,
         name: specialRoom.name,
         description: specialRoom.description
       });
@@ -270,7 +317,7 @@ export function GameProvider({ children }) {  // État global du jeu
       setShowDoctor(true);
       setItemAvailable(null);
       
-      if (roomId === 'secretRoom' && specialRoom.revealsTruth) {
+      if (actualRoomId === 'secretRoom' && specialRoom.revealsTruth) {
         setDoctorMessage("Vous avez découvert la salle secrète de l'hôpital. Des documents révèlent que cet établissement est en réalité un centre d'expérimentation contrôlé par les Illuminati. Leur symbole est partout.");
         // Ajouter plusieurs indices pour la découverte de cette salle
         setCluesFound(prev => prev + 3);
@@ -279,14 +326,15 @@ export function GameProvider({ children }) {  // État global du jeu
       }
     } else {
       // Autre type de salle prédéfinie
+      console.log("❓ Type de salle non reconnu:", actualRoomId);
       setCurrentService(null);
-      setCurrentBackground(roomId);
+      setCurrentBackground(actualRoomId);
       setShowDoctor(false);
       setDoctorMessage('');
     }
     
-    if (!visitedRooms.includes(roomId)) {
-      setVisitedRooms((prev) => [...prev, roomId]);
+    if (!visitedRooms.includes(actualRoomId)) {
+      setVisitedRooms((prev) => [...prev, actualRoomId]);
     }
   };
   

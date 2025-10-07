@@ -55,6 +55,7 @@ export default function GamePage() {
   const [showInventory, setShowInventory] = useState(false);
   const [showItemPrompt, setShowItemPrompt] = useState(false);
   const [eventAnimationActive, setEventAnimationActive] = useState(false);
+  const [forceUpdate, setForceUpdate] = useState(0);
   
   // Initialiser le jeu
   useEffect(() => {
@@ -105,8 +106,7 @@ export default function GamePage() {
   const dialogues = currentService ? 
     serviceDialogues[currentService.id] || initialDialogues : 
     initialDialogues;
-  
-  // Reset dialogue states when room changes
+    // Reset dialogue states when room changes
   useEffect(() => {
     setDialogueStep(0);
     setDoctorDialogueStep(0);
@@ -120,7 +120,37 @@ export default function GamePage() {
       // In corridors, we'll show navigation buttons after completing the dialogue
       // (this is handled separately in handleNextDialogue)
     }
+    
+    // Debug log pour le changement de salle
+    console.log("Room changed to:", currentRoom);
+    console.log("Current service after room change:", currentService);
   }, [currentRoom, showDoctor]);
+    // Effet spécial pour surveiller les changements de currentService
+  useEffect(() => {
+    console.log("⚡ currentService has changed:", currentService);
+    
+    // Debug logs pour mieux comprendre l'état du jeu lors des changements de service
+    if (currentService) {
+      console.log("Service actif - Nom:", currentService.name);
+      console.log("Service actif - Description:", currentService.description);
+      console.log("Service actif - ID:", currentService.id);
+    } else {
+      console.log("Pas de service actif - probablement dans un couloir ou zone sans spécialité");
+    }
+    
+    // Forcer la mise à jour du header du service après un court délai
+    // pour s'assurer que l'état est stabilisé
+    if (currentService && !currentRoom?.startsWith('corridor')) {
+      const timer = setTimeout(() => {
+        // Créer une copie locale du service pour forcer le rendu
+        const serviceCopy = { ...currentService };
+        console.log("🔄 Forcing service header update with:", serviceCopy);
+        setForceUpdate(prev => prev + 1); // Incrémenter pour forcer le rendu
+      }, 100); // Court délai pour s'assurer que l'état est stabilisé
+      
+      return () => clearTimeout(timer);
+    }
+  }, [currentService, currentRoom]);
   
   // Show navigation buttons or doctor choice when the player dialogue completes
   useEffect(() => {
@@ -185,12 +215,15 @@ export default function GamePage() {
       }
     }
   };
-  
-  // Gérer la navigation
+    // Gérer la navigation
   const handleNavigation = (direction) => {
     // Masquer les boutons de navigation pendant la transition
     setShowNavigation(false);
     setShowItemPrompt(false);
+    
+    // Log de début de navigation
+    console.log("Navigating to direction:", direction);
+    console.log("Current room:", currentRoom);
     
     // Navigation logic based on direction and current room
     switch (direction) {
@@ -201,9 +234,12 @@ export default function GamePage() {
         const destination = currentRoomData.exits && currentRoomData.exits[direction];
         
         if (destination) {
+          // Log la destination
+          console.log("Moving to existing destination:", destination);
           setCurrentRoom(destination);
         } else {
           // Si pas de destination spécifique, aller dans une salle médicale aléatoire
+          console.log("Moving to random medical room");
           setCurrentRoom('randomRoom'); // Génère une salle aléatoire (room1 à room9) avec médecin
         }
         break;
@@ -213,18 +249,23 @@ export default function GamePage() {
         const forwardDestination = availableRooms[currentRoom]?.exits?.forward;
         
         if (forwardDestination) {
+          console.log("Moving forward to:", forwardDestination);
           setCurrentRoom(forwardDestination);
         } else {
           // Progression par défaut entre les couloirs
           if (currentRoom === 'corridor1') {
-            setCurrentRoom('corridor2'); // Will use corridor1.jpg image
+            console.log("Moving to corridor2");
+            setCurrentRoom('corridor2');
           } else if (currentRoom === 'corridor2') {
-            setCurrentRoom('corridor3'); // Will use corridor1.jpg image
+            console.log("Moving to corridor3");
+            setCurrentRoom('corridor3');
           } else if (currentRoom === 'exit') {
+            console.log("Exiting game");
             // Fin du jeu si on sort
             // À implémenter: écran de victoire
           } else {
-            setCurrentRoom('corridor1'); // Will use corridor1.jpg image
+            console.log("Returning to corridor1");
+            setCurrentRoom('corridor1');
           }
         }
         break;
@@ -313,12 +354,26 @@ export default function GamePage() {
               <p className="text-lg">{popupMessage}</p>
             </div>
           </div>
-        )}
+        )}        {/* Debug logs améliorés */}
+        {console.log("Debug - currentService dans page.js:", currentService)}
+        {console.log("Debug - currentService name:", currentService?.name)}
+        {console.log("Debug - currentService description:", currentService?.description)}
+        {console.log("Debug - currentRoom dans page.js:", currentRoom)}
+        {console.log("Debug - forceUpdate count:", forceUpdate)}
         
-        {/* En-tête du service médical (quand on est dans un service) */}
-        {currentService && (
-          <ServiceHeader serviceName={currentService.name} />
-        )}
+        {/* En-tête du service médical utilisant le composant ServiceHeader avec valeurs explicites */}
+        {/* La prop key force le remontage du composant quand forceUpdate change */}
+        {console.log("[DEBUG] ServiceHeader props:", {
+          serviceName: currentService ? currentService.name : null,
+          serviceDescription: currentService ? currentService.description : null,
+          isCorridor: currentRoom && currentRoom.startsWith('corridor')
+        })}
+        <ServiceHeader
+          key={`service-header-${forceUpdate}-${currentRoom}`}
+          serviceName={currentService ? currentService.name : null}
+          serviceDescription={currentService ? currentService.description : null}
+          isCorridor={currentRoom && currentRoom.startsWith('corridor')}
+        />
         
         {/* Zone principale de jeu (centre) */}
         <div className="flex-grow flex items-center justify-center">
@@ -424,7 +479,7 @@ export default function GamePage() {
         
         {/* Compteur d'indices trouvés */}
         <div className="px-3 py-1 bg-yellow-700 rounded text-sm text-white">
-          Indices: {cluesFound}
+          Illuminatis touvés: {cluesFound}
         </div>
       </div>
     </div>
