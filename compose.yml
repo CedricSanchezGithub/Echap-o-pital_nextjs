@@ -1,0 +1,51 @@
+name: echapopital
+
+services:
+
+  ia_api:
+    image: cedsanc/echapopitalia:latest
+    container_name: echap-ia-api
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    networks:
+      - app-net
+    volumes:
+      - ./ia_data:/app
+  app:
+    image: cedsanc/echapopitalbackend:latest
+    container_name: echapopitalbackend
+    depends_on:
+      ia_api:
+        condition: service_started
+    environment:
+      IA_API_URL: http://ia_api:5001/generate
+    ports:
+      - "8081:8081"
+    networks:
+      - app-net
+
+  frontend:
+    image: cedsanc/echapopital_frontend:latest
+    container_name: echapopital-frontend
+    depends_on:
+      app:
+        condition: service_started
+    ports:
+      - "3000:3000"
+    networks:
+      - app-net
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: echap-watchtower
+    restart: unless-stopped
+    command: --interval 300
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - app-net
+
+networks:
+  app-net:
+    driver: bridge
