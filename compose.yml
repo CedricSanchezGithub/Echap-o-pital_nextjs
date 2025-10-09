@@ -4,7 +4,7 @@ services:
 
   ia_api:
     image: cedsanc/echapopitalia:latest
-    container_name: echap-ia-api
+    container_name: echap-ia-services
     restart: unless-stopped
     ports:
       - "5001:5001"
@@ -25,16 +25,16 @@ services:
     networks:
       - app-net
 
-  frontend:
-    image: cedsanc/echapopital_frontend:latest
-    container_name: echapopital-frontend
-    depends_on:
-      app:
-        condition: service_started
-    ports:
-      - "3000:3000"
-    networks:
-      - app-net
+#  frontend:
+#    image: cedsanc/echapopital_frontend:latest
+#    container_name: echapopital-frontend
+#    depends_on:
+#      app:
+#        condition: service_started
+#    ports:
+#      - "3000:3000"
+#    networks:
+#      - app-net
 
   watchtower:
     image: containrrr/watchtower

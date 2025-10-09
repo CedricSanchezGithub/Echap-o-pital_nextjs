@@ -60,7 +60,7 @@ export function getRandomDoctorPhrase() {
   return doctorPhrases[randomIndex];
 }
 
-// Fonction pour obtenir une phrase de médecin liée à un service spécifique
+// Fonction pour obtenir une phrase de médecin liée à un services spécifique
 export function getServiceSpecificPhrase(serviceId) {
   const serviceSpecificPhrases = {
     cardiology: "Les battements de votre cœur sont irréguliers. Nous devrions faire quelques tests supplémentaires.",

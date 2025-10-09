@@ -54,7 +54,7 @@ export const medicalServices = [
     id: "emergency",
     name: "Urgences",
     description: "Service de prise en charge des cas médicaux urgents.",
-    ambiance: "Le service est étrangement vide. Des traces de sang mènent à une porte verrouillée.",
+    ambiance: "Le services est étrangement vide. Des traces de sang mènent à une porte verrouillée.",
     difficulty: 2,
     possibleItems: ["trousse de premiers soins", "carte d'accès"]
   },
@@ -76,7 +76,7 @@ export const medicalServices = [
   }
 ];
 
-// Fonction pour obtenir un service médical aléatoire
+// Fonction pour obtenir un services médical aléatoire
 export function getRandomService(difficultyLevel = 0) {
   // Si un niveau de difficulté est spécifié, filtrer les services par difficulté
   let availableServices = medicalServices;
@@ -89,7 +89,7 @@ export function getRandomService(difficultyLevel = 0) {
   return availableServices[randomIndex];
 }
 
-// Fonction pour obtenir un item aléatoire basé sur le service
+// Fonction pour obtenir un item aléatoire basé sur le services
 export function getRandomItem(serviceId) {
   const service = medicalServices.find(s => s.id === serviceId);
   if (!service || !service.possibleItems || service.possibleItems.length === 0) {
