@@ -1,17 +1,18 @@
 "use client";
 
-import { createContext, useState, useContext, useEffect } from 'react';
-import { getRandomSymptom, getRandomPlayer } from '../utils/gameUtils';
-import { getRandomService, getRandomItem, rooms, randomEvents } from '../utils/roomUtils';
-import { generateStory } from '../services/api';
-import { handleDoctorChoice as handleDoctorChoiceService } from '../services/doctorService';
+import {createContext, useState, useContext, useEffect} from 'react';
+import {getRandomSymptom, getRandomPlayer} from '../utils/gameUtils';
+import {getRandomService, getRandomItem, rooms, randomEvents} from '../utils/roomUtils';
+import {generateStory} from '../services/api';
+import {handleDoctorChoice as handleDoctorChoiceService} from '../services/doctorService';
 
 const GameContext = createContext();
 
 const HEALTH_PENALTY_PER_ERROR = 15;
 const INITIAL_HEALTH = 100;
 
-export function GameProvider({ children }) {
+export function GameProvider({children}) {
+    const [gameWon, setGameWon] = useState(false);
     const [health, setHealth] = useState(INITIAL_HEALTH);
     const [currentRoom, setCurrentRoom] = useState('corridor1');
     const [inventory, setInventory] = useState([]);
@@ -114,7 +115,13 @@ export function GameProvider({ children }) {
         let service = getRandomService(difficultyLevel);
 
         if (!service?.name) {
-            service = { id: 'general', name: 'Médecine Générale', description: 'Service de médecine générale', ambiance: 'Une salle médicale standard.', difficulty: 1 };
+            service = {
+                id: 'general',
+                name: 'Médecine Générale',
+                description: 'Service de médecine générale',
+                ambiance: 'Une salle médicale standard.',
+                difficulty: 1
+            };
         }
 
         const roomNumber = Math.floor(Math.random() * 9) + 1;
@@ -130,7 +137,13 @@ export function GameProvider({ children }) {
 
             const newRoom = {
                 id: roomId,
-                service: { id: service.id, name: service.name, description: service.description || 'Service hospitalier spécialisé', ambiance: service.ambiance || "La salle est silencieuse et inquiétante.", difficulty: service.difficulty || 1 },
+                service: {
+                    id: service.id,
+                    name: service.name,
+                    description: service.description || 'Service hospitalier spécialisé',
+                    ambiance: service.ambiance || "La salle est silencieuse et inquiétante.",
+                    difficulty: service.difficulty || 1
+                },
                 background,
                 doctorMessage: story,
                 difficulty: service.difficulty || 1,
@@ -139,7 +152,7 @@ export function GameProvider({ children }) {
                 isBad: Math.random() < 0.5
             };
 
-            setGeneratedRooms(prev => ({ ...prev, [roomId]: newRoom }));
+            setGeneratedRooms(prev => ({...prev, [roomId]: newRoom}));
             return newRoom;
         }
 
@@ -150,11 +163,18 @@ export function GameProvider({ children }) {
         if (!corridor || !rooms[corridor]?.eventChance) return null;
         if (Math.random() <= rooms[corridor].eventChance) {
             const event = randomEvents[Math.floor(Math.random() * randomEvents.length)];
-            switch(event.effect) {
-                case 'fear': decreaseHealth(event.severity * 2); break;
-                case 'damage': decreaseHealth(event.severity * 3); break;
-                case 'clue': findClue(); break;
-                default: break;
+            switch (event.effect) {
+                case 'fear':
+                    decreaseHealth(event.severity * 2);
+                    break;
+                case 'damage':
+                    decreaseHealth(event.severity * 3);
+                    break;
+                case 'clue':
+                    findClue();
+                    break;
+                default:
+                    break;
             }
             return event;
         }
@@ -169,7 +189,10 @@ export function GameProvider({ children }) {
             generatedRoom = await generateRandomRoom();
             actualRoomId = generatedRoom.id;
         }
-
+        if (roomId === 'final') {
+            setGameWon(true);
+            return;
+        }
         if (rooms[actualRoomId]?.locked) {
             const requiredItems = rooms[actualRoomId].requiredItems || [];
             if (!requiredItems.every(item => inventory.includes(item))) {
@@ -214,7 +237,7 @@ export function GameProvider({ children }) {
             }
         } else if (actualRoomId === 'exit' || actualRoomId === 'secretRoom') {
             const specialRoom = rooms[actualRoomId];
-            setCurrentService({ id: actualRoomId, name: specialRoom.name, description: specialRoom.description });
+            setCurrentService({id: actualRoomId, name: specialRoom.name, description: specialRoom.description});
             setCurrentBackground('room9');
             setCurrentRoomAmbiance(specialRoom.ambiance || "");
             setShowDoctor(true);
@@ -248,7 +271,7 @@ export function GameProvider({ children }) {
             if (generatedRooms[currentRoom]?.item === item) {
                 setGeneratedRooms(prev => ({
                     ...prev,
-                    [currentRoom]: { ...prev[currentRoom], item: null, itemPickedUp: true }
+                    [currentRoom]: {...prev[currentRoom], item: null, itemPickedUp: true}
                 }));
             }
             setItemAvailable(null);
@@ -274,10 +297,12 @@ export function GameProvider({ children }) {
         visitedRooms, cluesFound, findClue, currentService, currentBackground, currentRoomAmbiance,
         showDoctor, doctorMessage, setDoctorMessage, generatedRooms, generateRandomRoom, lastEvent,
         difficultyProgression, itemAvailable, showDoctorChoice, setShowDoctorChoice,
-        handleDoctorChoice, popupMessage, showPopup, availableRooms: rooms, mabouleErrorCount
+        handleDoctorChoice, popupMessage, showPopup, availableRooms: rooms, mabouleErrorCount,
+        gameWon
     };
 
     return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
+
 }
 
 export function useGameContext() {

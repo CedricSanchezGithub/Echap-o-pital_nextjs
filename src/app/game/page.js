@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import {useRouter} from 'next/navigation';
+import {useState, useEffect} from 'react';
 import Image from 'next/image';
 
 import HealthBar from '../components/HealthBar';
@@ -9,11 +9,15 @@ import PlayerCharacter from '../components/PlayerCharacter';
 import NavigationButtons from '../components/NavigationButtons';
 import DoctorNPC from '../components/DoctorNPC';
 import ServiceHeader from '../components/ServiceHeader';
-import { useGameContext } from '../context/GameContext';
+import {useGameContext} from '../context/GameContext';
+import GameOver from "@/app/components/GameOver";
+import GameWin from "@/app/components/GameWin";
 
 export default function GamePage() {
     const router = useRouter();
     const {
+        gameWon,
+        gameOver,
         health,
         currentRoom,
         setCurrentRoom,
@@ -195,7 +199,12 @@ export default function GamePage() {
         const roomNumber = currentBackground?.match(/\d+/)?.[0] || '1';
         return `/images/backgrounds/room${roomNumber}.png`;
     };
-
+    if (gameOver) {
+        return <GameOver />;
+    }
+    if (gameWon) {
+        return <GameWin />;
+    }
     return (
         <div className="font-sans min-h-screen w-full relative flex flex-col">
             <div className="absolute inset-0 z-0">
@@ -203,7 +212,7 @@ export default function GamePage() {
                     src={getBackgroundImage()}
                     alt="Hospital room"
                     fill
-                    style={{ objectFit: 'cover' }}
+                    style={{objectFit: 'cover'}}
                     priority
                 />
             </div>
@@ -221,7 +230,8 @@ export default function GamePage() {
                 </div>
 
                 {showInventory && (
-                    <div className="absolute top-24 right-4 z-30 bg-black/80 backdrop-blur-sm border border-white/20 p-4 rounded-lg text-white">
+                    <div
+                        className="absolute top-24 right-4 z-30 bg-black/80 backdrop-blur-sm border border-white/20 p-4 rounded-lg text-white">
                         <h3 className="font-bold text-lg mb-2">Inventaire</h3>
                         {inventory.length === 0 ? (
                             <p className="text-gray-400">Votre inventaire est vide</p>
@@ -236,7 +246,8 @@ export default function GamePage() {
                 )}
                 {eventAnimationActive && lastEvent && (
                     <div className="absolute top-1/3 left-0 right-0 z-30 flex justify-center">
-                        <div className="bg-red-900/70 backdrop-blur-md border border-red-700 p-4 rounded-lg text-white animate-pulse max-w-md">
+                        <div
+                            className="bg-red-900/70 backdrop-blur-md border border-red-700 p-4 rounded-lg text-white animate-pulse max-w-md">
                             <h3 className="font-bold text-lg mb-2 text-red-400">{lastEvent.name}</h3>
                             <p>{lastEvent.description}</p>
                         </div>
@@ -244,8 +255,10 @@ export default function GamePage() {
                 )}
 
                 {showPopup && popupMessage && (
-                    <div className="absolute top-1/2 left-0 right-0 z-50 flex justify-center transform -translate-y-1/2">
-                        <div className="bg-blue-900/90 backdrop-blur-md border border-blue-700 p-6 rounded-lg text-white max-w-md animate-bounce-once shadow-xl">
+                    <div
+                        className="absolute top-1/2 left-0 right-0 z-50 flex justify-center transform -translate-y-1/2">
+                        <div
+                            className="bg-blue-900/90 backdrop-blur-md border border-blue-700 p-6 rounded-lg text-white max-w-md animate-bounce-once shadow-xl">
                             <h3 className="font-bold text-xl mb-2 text-blue-300">Résultat</h3>
                             <p className="text-lg">{popupMessage}</p>
                         </div>
@@ -291,7 +304,7 @@ export default function GamePage() {
 
                             {showNavigation && currentRoom && currentRoom.startsWith('corridor') && (
                                 <div className="mt-8">
-                                    <NavigationButtons onNavigate={handleNavigate} />
+                                    <NavigationButtons onNavigate={handleNavigate}/>
                                 </div>
                             )}
 
@@ -342,7 +355,7 @@ export default function GamePage() {
                 </button>
 
                 <div className="mt-1">
-                    <HealthBar initialHealth={health} label="Santé" color="red" />
+                    <HealthBar initialHealth={health} label="Santé" color="red"/>
                 </div>
 
                 <div className="px-3 py-1 bg-yellow-700 rounded text-sm text-white">
