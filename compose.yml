@@ -25,27 +25,6 @@ services:
     networks:
       - app-net
 
-#  frontend:
-#    image: cedsanc/echapopital_frontend:latest
-#    container_name: echapopital-frontend
-#    depends_on:
-#      app:
-#        condition: service_started
-#    ports:
-#      - "3000:3000"
-#    networks:
-#      - app-net
-
-  watchtower:
-    image: containrrr/watchtower
-    container_name: echap-watchtower
-    restart: unless-stopped
-    command: --interval 300
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - app-net
-
 networks:
   app-net:
     driver: bridge

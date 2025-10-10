@@ -31,6 +31,8 @@ export function GameProvider({children}) {
     const [currentBackground, setCurrentBackground] = useState('corridor1');
     const [showDoctor, setShowDoctor] = useState(false);
     const [doctorMessage, setDoctorMessage] = useState('');
+    const [doctorChoices, setDoctorChoices] = useState([]);
+    const [isDialogueFinal, setIsDialogueFinal] = useState(false);
     const [generatedRooms, setGeneratedRooms] = useState({});
     const [currentRoomAmbiance, setCurrentRoomAmbiance] = useState('');
     const [itemAvailable, setItemAvailable] = useState(null);
@@ -41,6 +43,12 @@ export function GameProvider({children}) {
             setGameOver(true);
         }
     }, [health, gameOver]);
+
+    useEffect(() => {
+        if (cluesFound >= 5) {
+            setGameWon(true);
+        }
+    }, [cluesFound]);
 
     useEffect(() => {
         setPlayerNumber(getRandomPlayer());
@@ -94,18 +102,22 @@ export function GameProvider({children}) {
 
     const handleDoctorChoice = (choice) => {
         const gameActions = {
-            setPopupMessage,
-            setCluesFound,
-            increaseHealth,
-            decreaseHealth,
-            setPlayerSymptom,
-            setShowPopup,
-            setShowDoctorChoice,
-            setCurrentRoom,
-            visitedRooms,
-            getRandomSymptom
+            setPopupMessage, setCluesFound, increaseHealth, decreaseHealth,
+            setPlayerSymptom, setShowPopup, setShowDoctorChoice, setCurrentRoom,
+            visitedRooms, getRandomSymptom
         };
         handleDoctorChoiceService(choice, generatedRooms[currentRoom], gameActions);
+    };
+
+    const continueStory = async (choiceId) => {
+        setShowDoctorChoice(false);
+        // LA MODIFICATION EST ICI
+        const storyData = await generateStory({ choiceId: choiceId });
+
+        setDoctorMessage(storyData.dialogue);
+        setDoctorChoices(storyData.choix);
+        setIsDialogueFinal(storyData.fin_dialogue);
+        setShowDoctor(true);
     };
 
     const generateRandomRoom = async () => {
@@ -113,15 +125,8 @@ export function GameProvider({children}) {
             visitedRooms.includes('corridor2') ? 2 : 1;
 
         let service = getRandomService(difficultyLevel);
-
         if (!service?.name) {
-            service = {
-                id: 'general',
-                name: 'Médecine Générale',
-                description: 'Service de médecine générale',
-                ambiance: 'Une salle médicale standard.',
-                difficulty: 1
-            };
+            service = { id: 'general', name: 'Médecine Générale', description: '...', ambiance: '...', difficulty: 1 };
         }
 
         const roomNumber = Math.floor(Math.random() * 9) + 1;
@@ -129,29 +134,21 @@ export function GameProvider({children}) {
         const roomId = `${service.id}_${background}`;
 
         if (!generatedRooms[roomId]) {
-            const story = await generateStory(
-                playerSymptom?.name || 'inconnu',
-                service.name || 'inconnue',
-                health > 50 ? 'stable' : 'faible'
-            );
+            const storyData = await generateStory({
+                symptome: playerSymptom?.name || 'inconnu',
+                salle: service.name || 'inconnue',
+                etat: health > 50 ? 'stable' : 'faible'
+            });
 
             const newRoom = {
-                id: roomId,
-                service: {
-                    id: service.id,
-                    name: service.name,
-                    description: service.description || 'Service hospitalier spécialisé',
-                    ambiance: service.ambiance || "La salle est silencieuse et inquiétante.",
-                    difficulty: service.difficulty || 1
-                },
-                background,
-                doctorMessage: story,
-                difficulty: service.difficulty || 1,
+                id: roomId, service, background,
+                doctorMessage: storyData.dialogue,
+                doctorChoices: storyData.choix,
+                isDialogueFinal: storyData.fin_dialogue,
                 ambiance: service.ambiance || "La salle est silencieuse et inquiétante.",
                 item: Math.random() < 0.4 ? getRandomItem(service.id) : null,
                 isBad: Math.random() < 0.5
             };
-
             setGeneratedRooms(prev => ({...prev, [roomId]: newRoom}));
             return newRoom;
         }
@@ -189,10 +186,7 @@ export function GameProvider({children}) {
             generatedRoom = await generateRandomRoom();
             actualRoomId = generatedRoom.id;
         }
-        if (roomId === 'final') {
-            setGameWon(true);
-            return;
-        }
+
         if (rooms[actualRoomId]?.locked) {
             const requiredItems = rooms[actualRoomId].requiredItems || [];
             if (!requiredItems.every(item => inventory.includes(item))) {
@@ -210,6 +204,8 @@ export function GameProvider({children}) {
             setCurrentBackground(room.background);
             setShowDoctor(true);
             setDoctorMessage(room.doctorMessage);
+            setDoctorChoices(room.doctorChoices || []);
+            setIsDialogueFinal(room.isDialogueFinal || false);
             setCurrentRoomAmbiance(room.ambiance || room.service?.ambiance || "");
             if (room.item && !inventory.includes(room.item)) {
                 setItemAvailable(room.item);
@@ -226,6 +222,7 @@ export function GameProvider({children}) {
             setCurrentRoomAmbiance(corridorData?.ambiance || "");
             setShowDoctor(false);
             setDoctorMessage('');
+            setDoctorChoices([]);
             setItemAvailable(null);
             const event = handleRandomEvent(actualRoomId);
             if (event) {
@@ -242,6 +239,7 @@ export function GameProvider({children}) {
             setCurrentRoomAmbiance(specialRoom.ambiance || "");
             setShowDoctor(true);
             setItemAvailable(null);
+            setDoctorChoices([]);
             const message = actualRoomId === 'secretRoom' && specialRoom.revealsTruth
                 ? "Vous avez découvert la salle secrète de l'hôpital. Des documents révèlent que cet établissement est en réalité un centre d'expérimentation contrôlé par les Illuminati. Leur symbole est partout."
                 : specialRoom.ambiance || "Cette salle semble importante.";
@@ -298,7 +296,10 @@ export function GameProvider({children}) {
         showDoctor, doctorMessage, setDoctorMessage, generatedRooms, generateRandomRoom, lastEvent,
         difficultyProgression, itemAvailable, showDoctorChoice, setShowDoctorChoice,
         handleDoctorChoice, popupMessage, showPopup, availableRooms: rooms, mabouleErrorCount,
-        gameWon
+        gameWon,
+        doctorChoices,
+        continueStory,
+        isDialogueFinal
     };
 
     return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
